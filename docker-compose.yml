@@ -1,0 +1,13 @@
+services:
+  thermal_uvc:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: scx/thermal_uvc:latest
+    container_name: thermal_uvc
+    environment:
+      - DISPLAY=${DISPLAY}
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+    privileged: true
+    # restart: unless-stopped

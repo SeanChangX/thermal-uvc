@@ -1,0 +1,88 @@
+#!/bin/bash
+
+# Simplified color scheme, using only basic colors
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+RESET='\033[0m'
+
+# Simplified header output
+print_header() {
+    echo "========================================"
+    echo "HIK HikCamera USB Connection Checker"
+    echo "Device ID: 2bdf:0102"
+    echo "========================================"
+    echo ""
+}
+
+# Simplified device information output
+print_device_info() {
+    echo "USB Device Information"
+    echo "----------------------------------------"
+    
+    # Check for HikCamera device
+    local device_info=$(lsusb -d 2bdf:0102 -v 2>/dev/null)
+    
+    if [[ -n "$device_info" ]]; then
+        echo -e "${GREEN}✓ HIK HikCamera detected!${RESET}"
+        
+        # Extract and display device information
+        local bus_device=$(lsusb | grep "2bdf:0102" | sed 's/Bus \([0-9]*\) Device \([0-9]*\).*/Bus: \1, Device: \2/')
+        local manufacturer=$(echo "$device_info" | grep -i "iManufacturer" | sed 's/.*iManufacturer\s*[0-9]*\s*//')
+        local product=$(echo "$device_info" | grep -i "iProduct" | sed 's/.*iProduct\s*[0-9]*\s*//')
+        local serial=$(echo "$device_info" | grep -i "iSerial" | sed 's/.*iSerial\s*[0-9]*\s*//')
+        
+        echo "• $bus_device"
+        [[ -n "$manufacturer" ]] && echo "• Manufacturer: $manufacturer"
+        [[ -n "$product" ]] && echo "• Product: $product"
+        [[ -n "$serial" ]] && echo "• Serial: $serial"
+    else
+        echo -e "${RED}✗ HIK HikCamera NOT found!${RESET}"
+        echo "  Please check if the camera is connected."
+        echo "  Looking for Device ID: 2bdf:0102"
+    fi
+    
+    echo -e "----------------------------------------\n"
+}
+
+# Check camera permissions
+check_permissions() {
+    if lsusb | grep -q "2bdf:0102"; then
+        local device_path=$(lsusb -d 2bdf:0102 | awk '{print "/dev/bus/usb/" $2 "/" $4}' | sed 's/://')
+        
+        if [[ -n "$device_path" ]]; then
+            echo "Device Permissions"
+            echo "----------------------------------------"
+            
+            local perms=$(ls -la "$device_path" | awk '{print $1}')
+            local owner=$(ls -la "$device_path" | awk '{print $3}')
+            local group=$(ls -la "$device_path" | awk '{print $4}')
+            
+            echo "• Path: $device_path"
+            echo "• Permissions: $perms"
+            echo "• Owner: $owner"
+            echo "• Group: $group"
+            
+            if [[ "$perms" =~ "rw" ]]; then
+                echo -e "${GREEN}✓ Device has read/write permissions!${RESET}"
+            else
+                echo -e "${RED}✗ Device might not have proper permissions!${RESET}"
+                echo "  You may need to run with sudo privileges."
+            fi
+            
+            echo "----------------------------------------"
+        fi
+    fi
+}
+
+# Main execution flow
+print_header
+print_device_info
+check_permissions
+
+# Final message
+if lsusb | grep -q "2bdf:0102"; then
+    echo -e "${GREEN}HIK HikCamera is ready to use!${RESET}"
+else
+    echo -e "${RED}HIK HikCamera not detected. Please connect the device.${RESET}"
+    exit 1
+fi
