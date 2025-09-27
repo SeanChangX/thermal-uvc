@@ -7,7 +7,10 @@ services:
     container_name: thermal_uvc
     environment:
       - DISPLAY=${DISPLAY}
+      - XAUTHORITY=${XAUTHORITY}
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - ${XAUTHORITY}:${XAUTHORITY}:ro
+    network_mode: host
     privileged: true
     # restart: unless-stopped
