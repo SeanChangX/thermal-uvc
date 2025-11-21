@@ -22,15 +22,17 @@ public:
       RCLCPP_ERROR(this->get_logger(), "Failed to init libuvc");
       return;
     }
-
-    if (uvc_find_device(ctx_, &dev_, 0x2bdf, 0x0102, NULL) < 0) {
-      RCLCPP_ERROR(this->get_logger(), "Device not found");
+    
+    uvc_error_t err = uvc_find_device(ctx_, &dev_, 0x2bdf, 0x0102, NULL);
+    if (err != UVC_SUCCESS) {
+      RCLCPP_ERROR(this->get_logger(), "Device not found: %s (%d)", uvc_strerror(err), err);
       uvc_exit(ctx_);
       return;
     }
 
-    if (uvc_open(dev_, &devh_) < 0) {
-      RCLCPP_ERROR(this->get_logger(), "Failed to open device");
+    err = uvc_open(dev_, &devh_);
+    if (err != UVC_SUCCESS) {
+      RCLCPP_ERROR(this->get_logger(), "Failed to open device: %s (%d)", uvc_strerror(err), err);
       uvc_unref_device(dev_);
       uvc_exit(ctx_);
       return;
@@ -44,13 +46,12 @@ public:
       return;
     }
 
-    // 在不同的執行緒中處理影像
     streaming_thread_ = std::thread(&ThermalCameraNode::start_streaming, this);
   }
 
   ~ThermalCameraNode() {
     if (streaming_thread_.joinable()) {
-      streaming_thread_.join();  // 確保執行緒結束後再清理
+      streaming_thread_.join();
     }
     cleanup();
   }
@@ -67,7 +68,6 @@ private:
   static void frame_callback(uvc_frame_t *frame, void *ptr) {
     auto *self = static_cast<ThermalCameraNode *>(ptr);
 
-    // 在獨立執行緒處理影像
     std::thread gray_thread(&ThermalCameraNode::process_gray, self, frame);
     std::thread color_thread(&ThermalCameraNode::process_color, self, frame);
 

@@ -7,6 +7,7 @@ x-common-vars: &common-vars
   environment:
     RMW_IMPLEMENTATION: rmw_cyclonedds_cpp
     ROS_DOMAIN_ID: 40
+    CYCLONEDDS_URI: /tmp/dds.xml
 
 services:
   thermal_uvc:
@@ -22,19 +23,20 @@ services:
       - /dev:/dev 
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
       - ./packages:/home/infra/infra-ws/src:rw
+      - ./config/dds.xml:/tmp/dds.xml:ro
     device_cgroup_rules:
       - "c 81:* rmw"
       - "c 189:* rmw"
     privileged: true
     command: bash
 
-  gui:
-    image: capstone:gui
-    container_name: gui-capstone
-    <<: *common-vars
-    volumes:
-        # X11 socket
-        - /tmp/.X11-unix:/tmp/.X11-unix
-        - $HOME/.Xauthority:/home/gui/.Xauthority
-    command: ros2 launch foxglove_bridge foxglove_bridge_launch.xml address:=localhost port:=8740
-    profiles: ['gui']
+  # gui:
+  #   image: capstone:gui
+  #   container_name: gui-capstone
+  #   <<: *common-vars
+  #   volumes:
+  #       # X11 socket
+  #       - /tmp/.X11-unix:/tmp/.X11-unix
+  #       - $HOME/.Xauthority:/home/gui/.Xauthority
+  #   command: ros2 launch foxglove_bridge foxglove_bridge_launch.xml address:=localhost port:=8740
+  #   profiles: ['gui']
