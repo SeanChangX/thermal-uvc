@@ -22,13 +22,14 @@ public:
 
 private:
   void image_callback(const sensor_msgs::msg::Image::ConstSharedPtr &msg) {
-    cv::Mat frame_gray;
     try {
       frame_gray = cv_bridge::toCvShare(msg, "mono8")->image;
     } catch (cv_bridge::Exception &e) {
       RCLCPP_ERROR(this->get_logger(), "cv_bridge exception: %s", e.what());
       return;
     }
+
+    cv::applyColorMap(frame_gray, display_img, cv::COLORMAP_INFERNO);
 
     if (first_frame_) {
       old_gray_ = frame_gray.clone();
@@ -46,6 +47,9 @@ private:
 
     cv::goodFeaturesToTrack(old_gray_, p0_, 500, 0.01, 3, moving_mask);
     if (p0_.empty()) {
+      auto out_msg = cv_bridge::CvImage(msg->header, "bgr8", display_img).toImageMsg();
+      publisher_->publish(*out_msg);
+
       old_gray_ = frame_gray.clone();
       return;
     }
@@ -98,9 +102,6 @@ private:
       }
     }
 
-    cv::Mat display_img;
-    cv::cvtColor(frame_gray, display_img, cv::COLOR_GRAY2BGR);
-
     for (const auto &cluster : clusters) {
       // Get the bounding box for each cluster
       cv::Rect bounding_box = cv::boundingRect(cluster.second);
@@ -129,6 +130,8 @@ private:
   bool first_frame_;
   std::vector<cv::Point2f> p0_;
   cv::Mat old_gray_, mask_;
+  cv::Mat frame_gray;
+  cv::Mat display_img;
 };
 
 int main(int argc, char *argv[]) {
